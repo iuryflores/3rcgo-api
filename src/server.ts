@@ -63,11 +63,14 @@ const server = http.createServer(async (req, res) => {
     if (!result.accepted?.length || result.rejected?.length) throw new Error('SMTP recusou o destinatário.');
     reply(res, 200, 'Obrigado! Sua mensagem foi enviada!');
   } catch (error: unknown) {
-    const failure = error as { code?: string; command?: string; responseCode?: number };
+    const failure = error as { code?: string; command?: string; responseCode?: number; response?: string };
     console.error('Falha no envio SMTP.', {
       code: failure?.code || 'desconhecido',
       command: failure?.command || 'indisponível',
       responseCode: failure?.responseCode || 'indisponível',
+      response: typeof failure?.response === 'string'
+        ? failure.response.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email]').replace(/[\r\n]+/g, ' ').slice(0, 1000)
+        : 'indisponível',
     });
     reply(res, 502, 'Não foi possível enviar a solicitação. Tente novamente.');
   }
