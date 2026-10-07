@@ -1,0 +1,75 @@
+name: Deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deploy-3rcgo-api
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Configurar credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Instalar dependências
+        run: npm ci
+      - name: Validar e testar
+        run: |
+          npm run check
+          npm test
+      - name: Compilar TypeScript
+        run: npm run build
+      - name: Criar e validar .env
+        env:
+          HOST: '127.0.0.1'
+          PORT: ${{ vars.PORT }}
+          ALLOWED_ORIGINS: ${{ vars.ALLOWED_ORIGINS }}
+          TRUST_PROXY: 'true'
+          SMTP_HOST: ${{ vars.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT }}
+          SMTP_SECURE: ${{ vars.SMTP_SECURE }}
+          SMTP_USER: ${{ vars.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          MAIL_FROM: ${{ vars.MAIL_FROM }}
+          LGPD_TO: ${{ vars.LGPD_TO }}
+        run: node dist/deploy-env.js
+      - name: Garantir bucket S3 existe
+        env:
+          BUCKET: ${{ vars.AWS_S3_BUCKET_NAME }}
+          REGION: ${{ vars.AWS_REGION }}
+        run: |
+          set -euo pipefail
+          if ! aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+            if [ "$REGION" = "us-east-1" ]; then
+              aws s3api create-bucket --bucket "$BUCKET" --region "$REGION"
+            else
+              aws s3api create-bucket --bucket "$BUCKET" --region "$REGION" --create-bucket-configuration "LocationConstraint=$REGION"
+            fi
+          fi
+          aws s3api put-public-access-block --bucket "$BUCKET" --public-access-block-configuration 'BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true'
+      - name: Enviar para S3 e executar deploy via SSM
+        env:
+          DEPLOY_BUCKET: ${{ vars.AWS_S3_BUCKET_NAME }}
+          EC2_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+        run: |
+          tar -czf api.tar.gz dist package.json package-lock.json ecosystem.config.cjs .env deploy/install.sh
+          bash deploy/publish.sh api api.tar.gz
+      - name: Remover credenciais do runner
+        if: always()
+        run: rm -f .env api.tar.gz
