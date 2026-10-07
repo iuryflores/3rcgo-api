@@ -1,5 +1,7 @@
 import http, { type ServerResponse } from 'node:http';
 import nodemailer from 'nodemailer';
+import { lgpdEmailHtml } from './email-template.js';
+import { emailLogo } from './email-logo.js';
 import { validatePayload, emailText, type ValidatedPayload } from './validation.js';
 
 const env = process.env;
@@ -58,7 +60,8 @@ const server = http.createServer(async (req, res) => {
     const result = await transport.sendMail({
       from: env.MAIL_FROM, to: env.LGPD_TO,
       replyTo: data.email || undefined, subject: 'Solicitação de Dados — LGPD',
-      text: emailText(kind, data),
+      text: emailText(kind, data), html: lgpdEmailHtml(data),
+      attachments: [{ filename: 'logo-cartorio.png', content: emailLogo, cid: 'cartorio-logo', contentType: 'image/png', contentDisposition: 'inline' }],
     });
     if (!result.accepted?.length || result.rejected?.length) throw new Error('SMTP recusou o destinatário.');
     reply(res, 200, 'Obrigado! Sua mensagem foi enviada!');
