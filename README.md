@@ -64,3 +64,22 @@ disponível. `/health` confirma o processo, não a entrega SMTP.
 Não apaga releases antigos automaticamente; eles contêm a configuração de e-mail.
 
 Nenhum deploy remoto nem envio de e-mail é feito somente por criar estes arquivos.
+
+## Domínio da API
+
+Criar registro DNS A chamado api apontando para o IP público fixo da EC2.
+Domínio: api.terceirocartoriogo.com.br. Liberar portas 80 e 443.
+Na EC2 Ubuntu, a partir do checkout deste repositório, com Nginx e Certbot instalados:
+
+```bash
+sudo install -m 644 deploy/nginx.conf.example /etc/nginx/sites-available/3rcgo-api
+sudo ln -sfn /etc/nginx/sites-available/3rcgo-api /etc/nginx/sites-enabled/3rcgo-api
+sudo nginx -t
+sudo systemctl reload nginx
+sudo certbot --nginx -d api.terceirocartoriogo.com.br
+curl --fail https://api.terceirocartoriogo.com.br/health
+```
+
+Executar Certbot após confirmar o DNS. Não sobrescrever virtual hosts de outras aplicações.
+O deploy não instala o virtual host automaticamente. Publicar também o frontend
+atualizado para conectar o formulário LGPD à nova API. /health deve retornar {"msg":"ok"}.

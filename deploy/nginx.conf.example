@@ -1,7 +1,7 @@
-# Substituir api.example.com pelo domínio da API e configurar HTTPS.
+# API LGPD. Instalar este virtual host e habilitar HTTPS com Certbot.
 server {
     listen 80;
-    server_name api.example.com;
+    server_name api.terceirocartoriogo.com.br;
     client_max_body_size 32k;
     location / {
         proxy_pass http://127.0.0.1:9005;
