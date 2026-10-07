@@ -62,8 +62,13 @@ const server = http.createServer(async (req, res) => {
     });
     if (!result.accepted?.length || result.rejected?.length) throw new Error('SMTP recusou o destinatário.');
     reply(res, 200, 'Obrigado! Sua mensagem foi enviada!');
-  } catch {
-    console.error('Falha no envio SMTP.');
+  } catch (error: unknown) {
+    const failure = error as { code?: string; command?: string; responseCode?: number };
+    console.error('Falha no envio SMTP.', {
+      code: failure?.code || 'desconhecido',
+      command: failure?.command || 'indisponível',
+      responseCode: failure?.responseCode || 'indisponível',
+    });
     reply(res, 502, 'Não foi possível enviar a solicitação. Tente novamente.');
   }
 });
