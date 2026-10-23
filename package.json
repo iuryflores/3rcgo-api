@@ -7,20 +7,31 @@
     "node": ">=22"
   },
   "scripts": {
-    "start": "node --env-file=.env dist/server.js",
-    "dev": "node --env-file=.env --import tsx src/server.ts",
+    "start": "node --env-file=.env dist/main.js",
+    "dev": "tsc-watch -p tsconfig.json --onSuccess \"node --env-file=.env dist/main.js\"",
     "build": "tsc -p tsconfig.json",
-    "test": "tsx --test test/*.test.ts",
+    "test": "npm run build && tsx --test test/*.test.ts && node --test test/*.test.mjs",
     "check": "tsc --noEmit -p tsconfig.json",
-    "smtp:check": "node --env-file=.env --import tsx src/smtp-check.ts"
+    "smtp:check": "node --env-file=.env --import tsx src/smtp-check.ts",
+    "start:dev": "npm run dev"
   },
   "dependencies": {
-    "nodemailer": "10.0.15"
+    "@nestjs/common": "^12.2.0",
+    "@nestjs/core": "^12.2.0",
+    "@nestjs/platform-express": "^12.2.0",
+    "@nestjs/swagger": "^12.0.3",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "nodemailer": "10.0.15",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "22.20.5",
     "@types/nodemailer": "8.0.2",
+    "tsc-watch": "^7.2.1",
     "tsx": "4.23.15",
-    "typescript": "7.0.2"
+    "typescript": "^6.0.3"
   }
 }

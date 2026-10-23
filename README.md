@@ -1,11 +1,33 @@
-# API Node.js com TypeScript — 3rcgo
+# API NestJS com TypeScript — 3rcgo
 
 Somente formulário LGPD. POST `/terceiro/send-aviso/` e GET `/health`.
 Ouvidoria usa sistema externo e CONTACT_TO não é necessário.
 
 Local: `npm ci`, preencher `.env`, `npm run check`, `npm test`, `npm run build`,
-`npm start`. Desenvolvimento: `npm run dev`. SMTP sem enviar mensagem:
+`npm start`. Desenvolvimento: `npm run dev` (compila e reinicia automaticamente). SMTP sem enviar mensagem:
 `npm run smtp:check`. O frontend permanece com a API atual nesta etapa.
+
+## Estrutura
+
+Swagger UI em `/docs` e especificação OpenAPI em `/docs-json`.
+Localmente: `http://localhost:9005/docs` (ou a porta definida em `PORT`).
+As rotas de documentação aceitam GET sem Origin. O envio continua exigindo
+Origin autorizado: para usar “Try it out”, inclua a origem da documentação
+(por exemplo, `http://localhost:9005`) em `ALLOWED_ORIGINS`.
+Executar o envio pelo Swagger envia um e-mail real e consome o limite por IP.
+
+- `src/main.ts`: inicialização e configuração do servidor HTTP.
+- `src/app.ts`: configuração de CORS, validação global, limite JSON e encerramento.
+- `src/app.module.ts`: módulo principal e health check.
+- `src/mail/`: módulo, controller, service SMTP, DTO e guard de limite de requisições.
+- `src/http-error.filter.ts`: respostas de erro no formato `{ msg }` usado pelo cliente.
+- `src/validation.ts`: regras de negócio e normalização dos formulários.
+
+O controller recebe o DTO validado por `ValidationPipe` e delega o envio ao
+service injetado pelo Nest. Campos extras são descartados. O service fecha a
+conexão SMTP no encerramento. O PM2 executa `dist/main.js`.
+`npm test` compila e executa os testes de validação, template e integração HTTP.
+Os testes HTTP substituem o envio SMTP e não enviam e-mails reais.
 
 ## GitHub Actions → S3 → SSM → EC2
 
